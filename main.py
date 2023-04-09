@@ -6,7 +6,6 @@ from src.ui.general_window import GeneralWindow
 
 
 def main():
-    # sandbox()
     app = QApplication(sys.argv)
     window = GeneralWindow()
     window.show()

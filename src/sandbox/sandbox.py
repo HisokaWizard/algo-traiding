@@ -1,3 +1,4 @@
+import datetime
 from datetime import timedelta
 from decimal import Decimal
 
@@ -8,7 +9,6 @@ from tinkoff.invest.utils import decimal_to_quotation, now
 from src.sandbox.token_loader import token_loader
 
 TOKEN = token_loader()
-my_tickers = {'SBER': 'SBER', 'VKCO': 'VKCO', 'GAZP': 'GAZP', 'RTKM': 'RTKM', 'YNDX': 'YNDX'}
 
 
 def create_account():
@@ -42,52 +42,98 @@ def get_balance(account_id):
     return portfolio.total_amount_currencies
 
 
-def add_my_shares_list(client, tickers):
-    all_shares = client.instruments.shares()
-    my_shares = list(filter(lambda it: it.ticker == tickers.get(it.ticker), all_shares.instruments))
-    return tuple(map(
-        lambda item: {'ticker': item.ticker, 'class_code': item.class_code, 'lot': item.lot,
-                      'currency': item.currency, 'name': item.name, 'exchange': item.exchange,
-                      'issue_size_plan': item.issue_size_plan, 'uid': item.uid, 'figi': item.figi}, my_shares))
+class PriceKeys:
+    YEAR = 'year_ago_price'
+    HALF_YEAR = 'half_year_ago_price'
+    THREE_MONTH = 'three_month_ago_price'
+    MONTH = 'month_ago_price'
+    WEEK = 'week_ago_price'
+    TODAY = 'today_price'
 
 
-def get_candles_by_week(client, figi):
-    return client.get_all_candles(from_=now() - timedelta(days=2), interval=CandleInterval.CANDLE_INTERVAL_HOUR,
-                                  figi=figi)
+class SharesItem:
+    id = None
+    ticker = None
+    name = None
+    figi = None
+    lot = None
+    year_ago_price = None
+    half_year_ago_price = None
+    three_month_ago_price = None
+    month_ago_price = None
+    week_ago_price = None
+    today_price = None
+    currency = None
+
+    def __init__(self, uid, ticker, name, figi, lot, currency):
+        self.id = uid
+        self.ticker = ticker
+        self.figi = figi
+        self.name = name
+        self.lot = lot
+        self.currency = currency
+
+    def add_price_pool_to_item(self, year, half_year, three_month, month, week, day):
+        self.year_ago_price = year
+        self.half_year_ago_price = half_year
+        self.three_month_ago_price = three_month
+        self.month_ago_price = month
+        self.week_ago_price = week
+        self.today_price = day
 
 
-def create_order_to_buy(client):
-    return None
+def select_only_work_day(day: datetime):
+    if day.today().weekday() == 5:
+        return day - timedelta(days=2)
+    if day.today().weekday() == 6:
+        return day - timedelta(days=3)
+    return day
 
 
-def sandbox():
+def set_candle_price_to_share(share: SharesItem, from_: int):
     with SandboxClient(TOKEN) as client:
-        accounts = client.sandbox.get_sandbox_accounts()
-        for acc in accounts.accounts:
-            client.sandbox.close_sandbox_account(account_id=acc.id)
-        # Create new account for sandbox and set 1000000
-        # (account_id, balance) = create_account_with_currencies(client, 1000000)
-        # print('Balance:', balance)
-        # print('Account id:', account_id)
-        # # Add interesting for me shares to the specific prepared list
-        # my_shares_data = add_my_shares_list(client, my_tickers)
-        # count = 0
-        # for it in my_shares_data:
-        #     count += 1
-        #     print('Item ' + str(count) + ':', it)
-        # print('-----' * 10 + '\n')
-        # candles_vk = get_candles_by_week(client, my_shares_data[0]['figi'])
-        # for candle in candles_vk:
-        #     print(candle)
-        #
-        # price = Quotation(units=0, nano=0)
-        # direction = OrderDirection.ORDER_DIRECTION_BUY
-        # order_type = OrderType.ORDER_TYPE_MARKET
-        # print(my_shares_data[0]['name'])
-        # order_result = client.sandbox.post_sandbox_order(figi=my_shares_data[0]['figi'], quantity=100,
-        #                                                  account_id=account_id, direction=direction,
-        #                                                  order_type=order_type,
-        #                                                  instrument_id=my_shares_data[0]['uid'])
-        # print(order_result)
-        # my_profile = client.sandbox.get_sandbox_portfolio(account_id=account_id)
-        # print(my_profile)
+        from_period = select_only_work_day(now() - timedelta(days=from_))
+        to_period = from_period + timedelta(days=1)
+        interval_hour = CandleInterval.CANDLE_INTERVAL_HOUR
+        counter = 0
+        candle_amount_units_sum = 0
+        candle_amount_nano_sum = 0
+        for candle in client.get_all_candles(from_=from_period, to=to_period, interval=interval_hour,
+                                             figi=share.figi):
+            if not candle:
+                break
+            counter += 1
+            candle_amount_units_sum += candle.close.units
+            candle_amount_nano_sum += candle.close.nano
+        if counter == 0:
+            return None
+        candle_amount_units = candle_amount_units_sum / counter
+        candle_amount_nano = candle_amount_nano_sum / counter
+        result = str(round(candle_amount_units)) + ',' + str(candle_amount_nano)[0:2]
+        if from_ == 0:
+            share.today_price = result
+        if from_ == 7:
+            share.week_ago_price = result
+        if from_ == 30:
+            share.month_ago_price = result
+        if from_ == 90:
+            share.three_month_ago_price = result
+        if from_ == 180:
+            share.half_year_ago_price = result
+        if from_ == 365:
+            share.year_ago_price = result
+
+
+def get_ru_shares_list():
+    with SandboxClient(TOKEN) as client:
+        all_shares = client.instruments.shares()
+        ru_shares = []
+        for instrument in all_shares.instruments:
+            if instrument.country_of_risk != 'RU':
+                continue
+            share_item = SharesItem(uid=instrument.uid, ticker=instrument.ticker, figi=instrument.figi,
+                                    name=instrument.name, lot=instrument.lot, currency=instrument.currency)
+            ru_shares.append(share_item)
+        for share in ru_shares:
+            set_candle_price_to_share(share, 0)
+        return ru_shares
