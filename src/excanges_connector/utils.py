@@ -8,10 +8,16 @@ from src.excanges_connector.shares_item import SharesItem
 
 
 def select_only_work_day(day: datetime) -> datetime:
+    delta_saturday = timedelta(days=1)
+    delta_sunday = timedelta(days=2)
+    time = now().time().hour.real
+    if time > 14:
+        delta_saturday = timedelta(days=2)
+        delta_sunday = timedelta(days=3)
     if day.weekday() == 5:
-        return day - timedelta(days=1)
+        return day - delta_saturday
     if day.weekday() == 6:
-        return day - timedelta(days=2)
+        return day - delta_sunday
     return day
 
 

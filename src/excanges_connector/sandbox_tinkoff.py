@@ -61,14 +61,24 @@ def set_candle_price_to_share(share: SharesItem, from_: int):
             select_middle_share_amount(share=share, amount=amount, from_=from_)
 
 
-def get_ru_shares_list() -> list[SharesItem]:
+shares = []
+
+
+def get_shares_list(country_code: str) -> list[SharesItem]:
     with SandboxClient(TOKEN) as client:
         all_shares = client.instruments.shares()
-        ru_shares = []
+        shares.clear()
         for instrument in all_shares.instruments:
-            if instrument.country_of_risk != 'RU':
+            if instrument.country_of_risk != country_code:
                 continue
-            share_item = SharesItem(uid=instrument.uid, ticker=instrument.ticker, figi=instrument.figi,
-                                    name=instrument.name, lot=instrument.lot, currency=instrument.currency)
-            ru_shares.append(share_item)
-        return ru_shares
+            share_item = SharesItem()
+            share_item.id = instrument.uid
+            share_item.ticker = instrument.ticker
+            share_item.figi = instrument.figi
+            share_item.name = instrument.name
+            share_item.lot = instrument.lot
+            share_item.currency = instrument.currency
+            share_item.country_of_risk = instrument.country_of_risk
+            share_item.country_of_risk_name = instrument.country_of_risk_name
+            shares.append(share_item)
+        return shares
