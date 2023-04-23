@@ -4,7 +4,7 @@ from enum import Enum
 from tinkoff.invest import CandleInterval
 from tinkoff.invest.utils import now
 
-from src.excanges_connector.shares_item import SharesItem
+from src.excanges_connector.share_quotation import ShareQuotation
 
 
 def select_only_work_day(day: datetime) -> datetime:
@@ -37,16 +37,16 @@ def get_period_and_interval(from_: int):
     return from_period, to_period, interval_hour
 
 
-def select_middle_share_amount(share: SharesItem, amount: float, from_: int):
+def select_middle_share_amount(share_quotation: ShareQuotation, amount: float, from_: int):
     if from_ == WatchedDays.DAY.value:
-        share.today_price = amount
+        share_quotation.today_price = amount
     if from_ == WatchedDays.WEEK.value:
-        share.week_ago_price = amount
+        share_quotation.week_ago_price = amount
     if from_ == WatchedDays.MONTH.value:
-        share.month_ago_price = amount
+        share_quotation.month_ago_price = amount
     if from_ == WatchedDays.THREE_MONTH.value:
-        share.three_month_ago_price = amount
+        share_quotation.three_month_ago_price = amount
     if from_ == WatchedDays.HALF_YEAR.value:
-        share.half_year_ago_price = amount
+        share_quotation.half_year_ago_price = amount
     if from_ == WatchedDays.YEAR.value:
-        share.year_ago_price = amount
+        share_quotation.year_ago_price = amount

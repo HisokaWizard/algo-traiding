@@ -5,7 +5,9 @@ from tinkoff.invest import MoneyValue, OpenSandboxAccountResponse, GetAccountsRe
 from tinkoff.invest.sandbox.client import SandboxClient
 from tinkoff.invest.utils import decimal_to_quotation
 
-from src.excanges_connector.shares_item import SharesItem
+from src.excanges_connector.share import Share
+from src.excanges_connector.share_quotation import ShareQuotation
+from src.excanges_connector.share_ticker import ShareTicker
 from src.excanges_connector.token_loader_tinkoff import token_loader
 from src.excanges_connector.utils import get_period_and_interval, select_middle_share_amount
 
@@ -41,7 +43,7 @@ def get_balance(account_id) -> MoneyValue:
     return portfolio.total_amount_currencies
 
 
-def set_candle_price_to_share(share: SharesItem, from_: int):
+def get_candle_price_to_share(share_quotation: ShareQuotation, figi: str, from_: int):
     with SandboxClient(TOKEN) as client:
         (from_period, to_period, interval_hour) = get_period_and_interval(from_)
         nano_scale = 1000000000
@@ -49,7 +51,7 @@ def set_candle_price_to_share(share: SharesItem, from_: int):
         candle_amount_units_sum = 0
         candle_amount_nano_sum = 0
         for candle in client.get_all_candles(from_=from_period, to=to_period, interval=interval_hour,
-                                             figi=share.figi):
+                                             figi=figi):
             if candle:
                 counter += 1
                 candle_amount_units_sum += candle.close.units
@@ -58,20 +60,17 @@ def set_candle_price_to_share(share: SharesItem, from_: int):
             candle_amount_units = candle_amount_units_sum / counter
             candle_amount_nano = candle_amount_nano_sum / counter
             amount: float = round(candle_amount_units + candle_amount_nano, 4)
-            select_middle_share_amount(share=share, amount=amount, from_=from_)
+            select_middle_share_amount(share_quotation=share_quotation, amount=amount, from_=from_)
 
 
-shares = []
-
-
-def get_shares_list(country_code: str) -> list[SharesItem]:
+def get_shares_list(country_code: str) -> list[Share]:
     with SandboxClient(TOKEN) as client:
         all_shares = client.instruments.shares()
-        shares.clear()
+        shares = []
         for instrument in all_shares.instruments:
             if instrument.country_of_risk != country_code:
                 continue
-            share_item = SharesItem()
+            share_item = Share()
             share_item.id = instrument.uid
             share_item.ticker = instrument.ticker
             share_item.figi = instrument.figi
@@ -82,3 +81,18 @@ def get_shares_list(country_code: str) -> list[SharesItem]:
             share_item.country_of_risk_name = instrument.country_of_risk_name
             shares.append(share_item)
         return shares
+
+
+def get_country_tickers_and_figi(country_code: str):
+    with SandboxClient(TOKEN) as client:
+        all_shares = client.instruments.shares()
+        tickers: list[ShareTicker] = []
+        for instrument in all_shares.instruments:
+            if instrument.country_of_risk != country_code:
+                continue
+            ticker = ShareTicker()
+            ticker.ticker = instrument.ticker
+            ticker.figi = instrument.figi
+            ticker.id = instrument.uid
+            tickers.append(ticker)
+        return tickers
