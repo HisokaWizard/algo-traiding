@@ -8,16 +8,13 @@ from src.excanges_connector.share_quotation import ShareQuotation
 
 
 def select_only_work_day(day: datetime) -> datetime:
-    delta_saturday = timedelta(days=1)
-    delta_sunday = timedelta(days=2)
     time = now().time().hour.real
-    if time > 14:
-        delta_saturday = timedelta(days=2)
-        delta_sunday = timedelta(days=3)
-    if day.weekday() == 5:
-        return day - delta_saturday
-    if day.weekday() == 6:
-        return day - delta_sunday
+    if day.weekday() == 4 and time > 12 or day.weekday() == 5 and time < 12:
+        return day - timedelta(days=1)
+    if day.weekday() == 5 and time > 12 or day.weekday() == 6 and time < 12:
+        return day - timedelta(days=2)
+    if day.weekday() == 6 and time > 12:
+        return day - timedelta(days=3)
     return day
 
 
