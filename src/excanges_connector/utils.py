@@ -25,6 +25,8 @@ class WatchedDays(Enum):
     THREE_MONTH = 90
     HALF_YEAR = 180
     YEAR = 365
+    YEAR_2 = 730
+    YEAR_3 = 1095
 
 
 def get_period_and_interval(from_: int):
@@ -47,3 +49,7 @@ def select_middle_share_amount(share_quotation: ShareQuotation, amount: float, f
         share_quotation.half_year_ago_price = amount
     if from_ == WatchedDays.YEAR.value:
         share_quotation.year_ago_price = amount
+    if from_ == WatchedDays.YEAR_2.value:
+        share_quotation.two_years_ago_price = amount
+    if from_ == WatchedDays.YEAR_3.value:
+        share_quotation.three_years_ago_price = amount

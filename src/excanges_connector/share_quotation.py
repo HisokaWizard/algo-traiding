@@ -8,6 +8,8 @@ class Trend(BaseModel):
 
 class ShareQuotation(BaseModel):
     ticker: str = None
+    three_years_ago_price: float = None
+    two_years_ago_price: float = None
     year_ago_price: float = None
     half_year_ago_price: float = None
     three_month_ago_price: float = None
@@ -15,6 +17,8 @@ class ShareQuotation(BaseModel):
     week_ago_price: float = None
     today_price: float = None
     strong_attention: bool = False
+    actual_trend_three_years: Trend = Trend(trend=False, power=0)
+    actual_trend_two_years: Trend = Trend(trend=False, power=0)
     actual_trend_year: Trend = Trend(trend=False, power=0)
     actual_trend_half_year: Trend = Trend(trend=False, power=0)
     actual_trend_three_months: Trend = Trend(trend=False, power=0)
@@ -24,19 +28,20 @@ class ShareQuotation(BaseModel):
 
 
 def count_summary_trend(share_quotation: ShareQuotation, attention: float):
-    if share_quotation.actual_trend_year is not None \
-            and share_quotation.actual_trend_half_year is not None \
-            and share_quotation.three_month_ago_price is not None \
-            and share_quotation.month_ago_price is not None \
-            and share_quotation.actual_trend_week is not None:
-        share_quotation.summary_trend_by_year.power = (
-                                                              share_quotation.actual_trend_year.power + share_quotation.actual_trend_half_year.power +
-                                                              share_quotation.actual_trend_three_months.power + share_quotation.actual_trend_month.power +
-                                                              share_quotation.actual_trend_week.power) / 5
-        if share_quotation.summary_trend_by_year.power > 0:
-            share_quotation.summary_trend_by_year.trend = True
-        else:
-            share_quotation.summary_trend_by_year.trend = False
+    trend_years_3 = share_quotation.actual_trend_three_years
+    trend_years_2 = share_quotation.actual_trend_two_years
+    trend_year = share_quotation.actual_trend_year
+    trend_half_year = share_quotation.actual_trend_half_year
+    trend_months_3 = share_quotation.actual_trend_three_months
+    trend_month = share_quotation.actual_trend_month
+    trend_week = share_quotation.actual_trend_week
+    share_quotation.summary_trend_by_year.power = (trend_years_3.power + trend_years_2.power + trend_year.power +
+                                                   trend_half_year.power + trend_months_3.power + trend_month.power +
+                                                   trend_week.power) / 7
+    if share_quotation.summary_trend_by_year.power > 0:
+        share_quotation.summary_trend_by_year.trend = True
+    else:
+        share_quotation.summary_trend_by_year.trend = False
     if share_quotation.summary_trend_by_year.power > attention or share_quotation.summary_trend_by_year.power < -attention:
         share_quotation.strong_attention = True
 
