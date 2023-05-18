@@ -72,16 +72,15 @@ def get_prices_by_ticker(ticker: str, figi: str, attention: float):
     trend_month = share_quotation.actual_trend_month
     trend_week = share_quotation.actual_trend_week
 
-    attention1 = count_actual_trend_by_period(years_three_ago_price, today_price, trend_three_years, attention)
-    attention2 = count_actual_trend_by_period(years_two_ago_price, today_price, trend_two_years, attention)
-    attention3 = count_actual_trend_by_period(year_ago_price, today_price, trend_year, attention)
-    attention4 = count_actual_trend_by_period(half_year_ago_price, today_price, trend_half_year, attention)
-    attention5 = count_actual_trend_by_period(three_month_ago_price, today_price, trend_three_months, attention)
-    attention6 = count_actual_trend_by_period(month_ago_price, today_price, trend_month, attention)
-    attention7 = count_actual_trend_by_period(week_ago_price, today_price, trend_week, attention)
-    count_summary_trend(share_quotation, attention)
+    count_actual_trend_by_period(years_three_ago_price, today_price, trend_three_years, attention)
+    count_actual_trend_by_period(years_two_ago_price, today_price, trend_two_years, attention)
+    count_actual_trend_by_period(year_ago_price, today_price, trend_year, attention)
+    count_actual_trend_by_period(half_year_ago_price, today_price, trend_half_year, attention)
+    count_actual_trend_by_period(three_month_ago_price, today_price, trend_three_months, attention)
+    count_actual_trend_by_period(month_ago_price, today_price, trend_month, attention)
+    count_actual_trend_by_period(week_ago_price, today_price, trend_week, attention)
+    attention = count_summary_trend(share_quotation, attention)
 
-    if share_quotation.strong_attention or attention1 or attention2 or attention3 or \
-            attention4 or attention5 or attention6 or attention7:
+    if attention:
         share_quotation.strong_attention = True
     return share_quotation
